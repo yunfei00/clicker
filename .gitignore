@@ -53,3 +53,21 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Keil C51 / uVision temporary files and build outputs
+*.bak
+*.plg
+*.lst
+*.m51
+*.lnp
+*.omf
+*.build_log.htm
+*.uvguix.*
+*.uvgui.*
+*.uvoptx
+*.uvgui_*
+*.uvopt_*
+Objects/
+Listings/
+**/Objects/
+**/Listings/
