@@ -1,0 +1,54 @@
+name: Build firmware hex
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build-hex:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install SDCC
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sdcc
+
+      - name: Compile firmware.ihx
+        run: |
+          sdcc -mmcs51 \
+            -DSDCC \
+            -Istc15f104Test \
+            -Istc15f104Test/Public/inc \
+            --out-fmt-ihx \
+            -o firmware.ihx \
+            stc15f104Test/Main.c \
+            stc15f104Test/Public/src/Delay.c \
+            stc15f104Test/Public/src/Timer.c \
+            stc15f104Test/Public/src/RS-232.c
+
+      - name: Convert firmware.hex
+        run: packihx firmware.ihx > firmware.hex
+
+      - name: Upload firmware.hex
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware.hex
+          path: firmware.hex
+          if-no-files-found: error
+
+      - name: Publish release for tags
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: firmware.hex
