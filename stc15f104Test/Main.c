@@ -1,18 +1,18 @@
-#include "stc15f104e.h"
+#include "STC15F104E.h"
 
 #include <string.h>
-#include "public/inc/RS-232.h"
-#include "public/inc/timer.h"
-#include "public/inc/delay.h"  
+#include "Public/inc/RS-232.h"
+#include "Public/inc/Timer.h"
+#include "Public/inc/Delay.h"  
 
-unsigned int idata guiTimer1S = 4000;
+unsigned int IDATA guiTimer1S = 4000;
 
-sbit LED0 = P3 ^ 0;
-sbit LED1 = P3 ^ 1;
-sbit LED2 = P3 ^ 2;
-sbit LED3 = P3 ^ 3;
-sbit LED4 = P3 ^ 4;
-sbit LED5 = P3 ^ 5;
+SBIT_AT(LED0, 0xB0);
+SBIT_AT(LED1, 0xB1);
+SBIT_AT(LED2, 0xB2);
+SBIT_AT(LED3, 0xB3);
+SBIT_AT(LED4, 0xB4);
+SBIT_AT(LED5, 0xB5);
 
 void main(void) 
 {
@@ -40,19 +40,19 @@ void main(void)
 	} //end of while
 }
 
-void isr_int0() interrupt 0
+void isr_int0(void) INTERRUPT(0)
 {
     guiTimer1S = 30000; 
 }
 
-void isr_int1() interrupt 2
+void isr_int1(void) INTERRUPT(2)
 {
     guiTimer1S = 30000; 
 }
 
 
-// ∂® ±∆˜0÷–∂œ¥¶¿Ì∫Ø ˝
-void isr_timer0() interrupt 1
+void isr_timer0(void) INTERRUPT(1)
+void isr_uart(void) INTERRUPT(4)
 {
 	guiTimer1S--;
 
@@ -65,7 +65,7 @@ void isr_timer0() interrupt 1
 	}				   	
 }
 
-// ¥Æ––ø⁄÷–∂œ¥¶¿Ì∫Ø ˝
+// ‰∏≤Ë°åÂè£‰∏≠Êñ≠Â§ÑÁêÜÂáΩÊï∞
 void isr_uart() interrupt 4
 {
 	if (RI) 

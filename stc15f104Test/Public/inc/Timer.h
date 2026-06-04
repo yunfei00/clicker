@@ -2,7 +2,7 @@
 #define _TIMER_H
 
 #include "../../config.h"
-#include "rs-232.h"
+#include "RS-232.h"
 
 #define TIME0_INITIAL       0x06
 
