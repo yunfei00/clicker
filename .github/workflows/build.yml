@@ -1,0 +1,98 @@
+name: Build STC15F104 firmware
+
+"on":
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build/source package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sdcc zip
+
+      - name: Create source archive
+        run: |
+          mkdir -p build
+          zip -r build/stc15f104Test-source.zip stc15f104Test \
+            -x '*/Objects/*' '*/Listings/*' '*.bak' '*.plg'
+
+      - name: Try SDCC build
+        id: sdcc-build
+        shell: bash
+        run: |
+          set +e
+          mkdir -p build/sdcc
+
+          cat > build/build-info.txt <<EOF
+          Project: clicker / stc15f104Test
+          MCU: STC15F104E
+          Project type: Keil C51 / uVision (MCS-51)
+          Workflow: ${GITHUB_WORKFLOW}
+          Ref: ${GITHUB_REF}
+          SHA: ${GITHUB_SHA}
+          Build time (UTC): $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          EOF
+
+          sdcc -mmcs51 --model-small --std-sdcc89 --out-fmt-ihx \
+            -Istc15f104Test \
+            -Istc15f104Test/Public/inc \
+            stc15f104Test/Main.c \
+            stc15f104Test/Public/src/Delay.c \
+            stc15f104Test/Public/src/RS-232.c \
+            stc15f104Test/Public/src/Timer.c \
+            -o build/sdcc/firmware.ihx \
+            > build/sdcc/sdcc.log 2>&1
+          status=$?
+
+          if [ "$status" -eq 0 ] && [ -f build/sdcc/firmware.ihx ]; then
+            packihx build/sdcc/firmware.ihx > build/firmware.hex
+            echo "SDCC build: success" >> build/build-info.txt
+            echo "hex_generated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "SDCC build: failed" >> build/build-info.txt
+            echo "This project is a Keil C51 project and may require Keil uVision/C51 for a full firmware build." >> build/build-info.txt
+            echo "See build/sdcc/sdcc.log in the artifact for SDCC diagnostics." >> build/build-info.txt
+            echo "hex_generated=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "" >> build/build-info.txt
+          echo "Source archive: stc15f104Test-source.zip" >> build/build-info.txt
+          if [ -f build/firmware.hex ]; then
+            echo "Firmware HEX: firmware.hex" >> build/build-info.txt
+          fi
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stc15f104Test-build
+          path: |
+            build/stc15f104Test-source.zip
+            build/build-info.txt
+            build/firmware.hex
+            build/sdcc/sdcc.log
+          if-no-files-found: ignore
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/stc15f104Test-source.zip
+            build/build-info.txt
+            build/firmware.hex
+          fail_on_unmatched_files: false
